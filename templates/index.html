@@ -426,6 +426,8 @@
         let startX, startY;
         let cropHistory = [];
         let cornerPoints = []; // 동적 코너점 배열
+        let originalImageSize = { width: 0, height: 0 }; // 원본 이미지 크기 저장
+        let cornerPositions = []; // 코너점들의 상대적 위치 저장 (0-1 범위)
 
         // 파일 업로드 처리
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
@@ -435,6 +437,9 @@
         uploadSection.addEventListener('dragover', handleDragOver);
         uploadSection.addEventListener('dragleave', handleDragLeave);
         uploadSection.addEventListener('drop', handleDrop);
+        
+        // 브라우저 크기 변경 이벤트 리스너
+        window.addEventListener('resize', handleResize);
 
         function handleDragOver(e) {
             e.preventDefault();
@@ -502,6 +507,11 @@
             
             img.onload = function() {
                 currentImage = img;
+                
+                // 원본 이미지 크기 저장
+                originalImageSize.width = img.naturalWidth;
+                originalImageSize.height = img.naturalHeight;
+                
                 document.getElementById('imageContainer').style.display = 'block';
                 document.getElementById('controls').style.display = 'block';
                 document.getElementById('resultSection').style.display = 'none';
@@ -544,6 +554,9 @@
             // 새로운 코너점들 생성
             createCornerPoints(defaultCorners);
             
+            // 상대적 위치 저장
+            saveCornerPositions();
+            
             // 오버레이 다시 그리기
             setTimeout(drawCropOverlay, 50);
         }
@@ -552,6 +565,7 @@
             const container = document.getElementById('cornerPointsContainer');
             container.innerHTML = '';
             cornerPoints = [];
+            cornerPositions = []; // 상대적 위치도 초기화
         }
 
         function createCornerPoints(positions) {
@@ -697,9 +711,69 @@
         function stopDrag() {
             isDragging = false;
             draggedCorner = null;
+            
+            // 드래그 완료 후 상대적 위치 저장
+            saveCornerPositions();
+            
             drawCropOverlay();
         }
 
+        // 코너점들의 상대적 위치를 저장하는 함수
+        function saveCornerPositions() {
+            if (!currentImage || cornerPoints.length === 0) return;
+            
+            const imageRect = currentImage.getBoundingClientRect();
+            cornerPositions = [];
+            
+            cornerPoints.forEach(corner => {
+                const cornerRect = corner.getBoundingClientRect();
+                
+                // 이미지 기준으로 상대적 위치 계산 (0-1 범위)
+                const x = (cornerRect.left + cornerRect.width / 2 - imageRect.left) / imageRect.width;
+                const y = (cornerRect.top + cornerRect.height / 2 - imageRect.top) / imageRect.height;
+                
+                cornerPositions.push({ x: x, y: y });
+            });
+        }
+        
+        // 저장된 상대적 위치를 기반으로 코너점들을 재배치하는 함수
+        function restoreCornerPositions() {
+            if (!currentImage || cornerPositions.length === 0) return;
+            
+            const imageRect = currentImage.getBoundingClientRect();
+            
+            cornerPoints.forEach((corner, index) => {
+                if (index < cornerPositions.length) {
+                    const pos = cornerPositions[index];
+                    
+                    // 상대적 위치를 픽셀 위치로 변환
+                    const x = pos.x * imageRect.width;
+                    const y = pos.y * imageRect.height;
+                    
+                    // 이미지 영역 내로 제한
+                    const clampedX = Math.max(0, Math.min(x, imageRect.width - 20));
+                    const clampedY = Math.max(0, Math.min(y, imageRect.height - 20));
+                    
+                    corner.style.left = clampedX + 'px';
+                    corner.style.top = clampedY + 'px';
+                    corner.style.right = 'auto';
+                    corner.style.bottom = 'auto';
+                }
+            });
+        }
+        
+        // 브라우저 크기 변경 처리 함수
+        function handleResize() {
+            if (!currentImage || cornerPositions.length === 0) return;
+            
+            // 약간의 지연을 두어 리사이즈 완료 후 실행
+            clearTimeout(window.resizeTimeout);
+            window.resizeTimeout = setTimeout(() => {
+                restoreCornerPositions();
+                drawCropOverlay();
+            }, 100);
+        }
+        
         function drawCropOverlay() {
             const canvas = document.getElementById('cropOverlay');
             const ctx = canvas.getContext('2d');
@@ -1076,6 +1150,9 @@
             
             // 새로운 코너점들 생성
             createCornerPoints(positions);
+            
+            // 상대적 위치 저장
+            saveCornerPositions();
 
             // 오버레이 다시 그리기
             setTimeout(drawCropOverlay, 50);

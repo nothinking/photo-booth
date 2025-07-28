@@ -361,8 +361,10 @@
                 <h3>📋 사용 방법</h3>
                 <ol>
                     <li>아래 버튼을 클릭하거나 이미지를 드래그하여 갤러리에서 사진을 업로드하세요.</li>
-                    <li>업로드된 이미지에서 포토부스의 4개 모서리를 클릭하여 위치를 조정하세요.</li>
-                    <li>모서리 점들을 드래그하여 정확한 위치로 이동할 수 있습니다.</li>
+                    <li><strong>자동 검출:</strong> 이미지 업로드 후 자동으로 엣지 디텍팅이 실행되어 코너점을 검출합니다.</li>
+                    <li><strong>유연한 코너점:</strong> 3개 이상의 코너점을 자동으로 검출하여 다양한 형태의 영역을 크롭할 수 있습니다.</li>
+                    <li><strong>수동 조정:</strong> 검출된 코너점을 드래그하여 정확한 위치로 미세 조정할 수 있습니다.</li>
+                    <li><strong>초기화:</strong> "모서리 초기화" 버튼으로 기본 위치로 되돌릴 수 있습니다.</li>
                     <li>"크롭하기" 버튼을 클릭하여 최종 결과를 확인하세요.</li>
                 </ol>
             </div>
@@ -379,22 +381,13 @@
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>이미지를 처리하고 있습니다...</p>
+                <p id="loadingMessage">이미지를 처리하고 있습니다...</p>
             </div>
 
             <div id="imageContainer" class="image-container" style="display: none;">
                 <img id="uploadedImage" src="" alt="업로드된 이미지">
-                <div class="corner-point" id="corner1" style="top: 10%; left: 10%;">
-                    <span class="corner-number">1</span>
-                </div>
-                <div class="corner-point" id="corner2" style="top: 10%; right: 10%;">
-                    <span class="corner-number">2</span>
-                </div>
-                <div class="corner-point" id="corner3" style="bottom: 10%; right: 10%;">
-                    <span class="corner-number">3</span>
-                </div>
-                <div class="corner-point" id="corner4" style="bottom: 10%; left: 10%;">
-                    <span class="corner-number">4</span>
+                <div id="cornerPointsContainer">
+                    <!-- 동적으로 생성되는 코너점들이 여기에 표시됩니다 -->
                 </div>
                 <canvas id="cropOverlay" class="crop-overlay"></canvas>
             </div>
@@ -432,6 +425,7 @@
         let draggedCorner = null;
         let startX, startY;
         let cropHistory = [];
+        let cornerPoints = []; // 동적 코너점 배열
 
         // 파일 업로드 처리
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
@@ -521,6 +515,12 @@
                 
                 // 오버레이 그리기
                 setTimeout(drawCropOverlay, 100);
+                
+                // 이미지 로드 완료 후 자동으로 기본 검출 실행
+                setTimeout(() => {
+                    showLoading(true, '엣지 디텍팅으로 코너점을 자동 검출하고 있습니다...');
+                    detectCorners('basic');
+                }, 200);
             };
         }
 
@@ -530,31 +530,58 @@
             const imageRect = currentImage.getBoundingClientRect();
             const margin = 50; // 이미지 경계에서 50px 여백
             
-            // 안전한 초기 위치 계산
-            const corners = [
-                { id: 'corner1', x: margin, y: margin },
-                { id: 'corner2', x: imageRect.width - margin - 20, y: margin },
-                { id: 'corner3', x: imageRect.width - margin - 20, y: imageRect.height - margin - 20 },
-                { id: 'corner4', x: margin, y: imageRect.height - margin - 20 }
+            // 기본 4개 코너점 위치 (좌상단부터 시계방향)
+            const defaultCorners = [
+                { x: margin, y: margin },                                    // 1: 좌상단
+                { x: imageRect.width - margin - 20, y: margin },            // 2: 우상단
+                { x: imageRect.width - margin - 20, y: imageRect.height - margin - 20 }, // 3: 우하단
+                { x: margin, y: imageRect.height - margin - 20 }            // 4: 좌하단
             ];
-
-            corners.forEach(corner => {
-                const element = document.getElementById(corner.id);
-                element.style.left = corner.x + 'px';
-                element.style.top = corner.y + 'px';
-                element.style.right = 'auto';
-                element.style.bottom = 'auto';
-            });
+            
+            // 기존 코너점들 제거
+            clearCornerPoints();
+            
+            // 새로운 코너점들 생성
+            createCornerPoints(defaultCorners);
             
             // 오버레이 다시 그리기
             setTimeout(drawCropOverlay, 50);
         }
 
-        // 코너점 드래그 기능
-        document.querySelectorAll('.corner-point').forEach(corner => {
-            corner.addEventListener('mousedown', startDrag);
-        });
+        function clearCornerPoints() {
+            const container = document.getElementById('cornerPointsContainer');
+            container.innerHTML = '';
+            cornerPoints = [];
+        }
 
+        function createCornerPoints(positions) {
+            const container = document.getElementById('cornerPointsContainer');
+            cornerPoints = [];
+            
+            positions.forEach((pos, index) => {
+                const cornerPoint = document.createElement('div');
+                cornerPoint.className = 'corner-point';
+                cornerPoint.id = `corner${index + 1}`;
+                cornerPoint.style.left = pos.x + 'px';
+                cornerPoint.style.top = pos.y + 'px';
+                cornerPoint.style.right = 'auto';
+                cornerPoint.style.bottom = 'auto';
+                
+                const cornerNumber = document.createElement('span');
+                cornerNumber.className = 'corner-number';
+                cornerNumber.textContent = index + 1;
+                
+                cornerPoint.appendChild(cornerNumber);
+                container.appendChild(cornerPoint);
+                
+                // 드래그 이벤트 추가
+                cornerPoint.addEventListener('mousedown', startDrag);
+                
+                cornerPoints.push(cornerPoint);
+            });
+        }
+
+        // 전역 드래그 이벤트 리스너
         document.addEventListener('mousemove', drag);
         document.addEventListener('mouseup', stopDrag);
 
@@ -612,15 +639,13 @@
         }
 
         function validateCornerPositions() {
-            if (!currentImage) return false;
+            if (!currentImage || cornerPoints.length < 3) return false;
             
             const imageRect = currentImage.getBoundingClientRect();
-            const corners = ['corner1', 'corner2', 'corner3', 'corner4'];
             const cornerSize = 20;
             
             // 모든 코너점이 이미지 영역 내에 있는지 확인
-            for (const cornerId of corners) {
-                const corner = document.getElementById(cornerId);
+            for (const corner of cornerPoints) {
                 const cornerRect = corner.getBoundingClientRect();
                 
                 const x = cornerRect.left + cornerRect.width / 2 - imageRect.left;
@@ -633,21 +658,20 @@
                 }
             }
             
-            // 최소 크기 보장 (최소 50x50 픽셀)
+            // 최소 크기 보장 (최소 30x30 픽셀)
             const cornerPositions = getCornerPositions();
-            const minWidth = 50;
-            const minHeight = 50;
+            if (cornerPositions.length < 3) return false;
             
-            const width = Math.max(
-                Math.abs(cornerPositions[1][0] - cornerPositions[0][0]),
-                Math.abs(cornerPositions[2][0] - cornerPositions[3][0])
-            );
-            const height = Math.max(
-                Math.abs(cornerPositions[3][1] - cornerPositions[0][1]),
-                Math.abs(cornerPositions[2][1] - cornerPositions[1][1])
-            );
+            // 경계 상자 계산
+            const minX = Math.min(...cornerPositions.map(pos => pos[0]));
+            const maxX = Math.max(...cornerPositions.map(pos => pos[0]));
+            const minY = Math.min(...cornerPositions.map(pos => pos[1]));
+            const maxY = Math.max(...cornerPositions.map(pos => pos[1]));
             
-            if (width < minWidth || height < minHeight) {
+            const width = maxX - minX;
+            const height = maxY - minY;
+            
+            if (width < 30 || height < 30) {
                 return false;
             }
             
@@ -658,8 +682,7 @@
             const imageRect = currentImage.getBoundingClientRect();
             const positions = [];
             
-            ['corner1', 'corner2', 'corner3', 'corner4'].forEach(cornerId => {
-                const corner = document.getElementById(cornerId);
+            cornerPoints.forEach(corner => {
                 const cornerRect = corner.getBoundingClientRect();
                 
                 const x = cornerRect.left + cornerRect.width / 2 - imageRect.left;
@@ -695,10 +718,11 @@
             // 기존 내용 지우기
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            if (cornerPoints.length < 3) return;
+            
             // 코너점 좌표 가져오기 (캔버스 기준으로 변환)
             const corners = [];
-            ['corner1', 'corner2', 'corner3', 'corner4'].forEach(cornerId => {
-                const corner = document.getElementById(cornerId);
+            cornerPoints.forEach(corner => {
                 const cornerRect = corner.getBoundingClientRect();
                 
                 // 캔버스 기준 좌표로 변환
@@ -719,10 +743,17 @@
             
             ctx.beginPath();
             ctx.moveTo(corners[0][0], corners[0][1]);
-            ctx.lineTo(corners[1][0], corners[1][1]);
-            ctx.lineTo(corners[2][0], corners[2][1]);
-            ctx.lineTo(corners[3][0], corners[3][1]);
-            ctx.closePath();
+            
+            // 모든 코너점을 연결
+            for (let i = 1; i < corners.length; i++) {
+                ctx.lineTo(corners[i][0], corners[i][1]);
+            }
+            
+            // 마지막 점을 첫 번째 점과 연결하여 닫힌 도형 만들기
+            if (corners.length > 2) {
+                ctx.closePath();
+            }
+            
             ctx.stroke();
             
             // 반투명 배경
@@ -734,17 +765,20 @@
             const corners = [];
             const imageRect = currentImage.getBoundingClientRect();
             
+            if (cornerPoints.length < 3) {
+                return corners;
+            }
+            
             // 각 코너점의 위치와 ID를 함께 저장
             const cornerData = [];
-            ['corner1', 'corner2', 'corner3', 'corner4'].forEach(cornerId => {
-                const corner = document.getElementById(cornerId);
+            cornerPoints.forEach((corner, index) => {
                 const cornerRect = corner.getBoundingClientRect();
                 
                 const x = (cornerRect.left + cornerRect.width / 2 - imageRect.left) / imageRect.width;
                 const y = (cornerRect.top + cornerRect.height / 2 - imageRect.top) / imageRect.height;
                 
                 cornerData.push({
-                    id: cornerId,
+                    id: `corner${index + 1}`,
                     x: x,
                     y: y,
                     pixelX: cornerRect.left + cornerRect.width / 2 - imageRect.left,
@@ -752,25 +786,42 @@
                 });
             });
             
-            // 이미지 중심점 계산
-            const centerX = imageRect.width / 2;
-            const centerY = imageRect.height / 2;
-            
-            // 각 코너점의 각도 계산 (시계방향 정렬)
-            cornerData.forEach(corner => {
-                const angle = Math.atan2(corner.pixelY - centerY, corner.pixelX - centerX);
-                corner.angle = angle;
-            });
-            
-            // 각도에 따라 정렬 (시계방향)
-            cornerData.sort((a, b) => a.angle - b.angle);
+            // 좌상단부터 시계방향으로 정렬
+            const sortedCornerData = sortCornersClockwise(cornerData, imageRect);
             
             // 정렬된 순서로 좌표 반환
-            cornerData.forEach(corner => {
+            sortedCornerData.forEach(corner => {
                 corners.push([corner.x, corner.y]);
             });
             
             return corners;
+        }
+
+        function sortCornersClockwise(cornerData, imageRect) {
+            // 중심점 계산
+            const centerX = imageRect.width / 2;
+            const centerY = imageRect.height / 2;
+            
+            // 각 코너점의 각도 계산 (좌상단이 0도, 시계방향)
+            cornerData.forEach(corner => {
+                const dx = corner.pixelX - centerX;
+                const dy = corner.pixelY - centerY;
+                let angle = Math.atan2(dy, dx);
+                
+                // 좌상단(-135도)을 0도로 변환
+                // 좌상단은 dx < 0, dy < 0 이므로 -135도
+                angle = angle + 3*Math.PI/4; // -135도를 0도로 변환
+                
+                // 음수 각도를 양수로 변환
+                if (angle < 0) {
+                    angle += 2 * Math.PI;
+                }
+                
+                corner.angle = angle;
+            });
+            
+            // 각도에 따라 정렬
+            return cornerData.sort((a, b) => a.angle - b.angle);
         }
 
         function cropImage() {
@@ -941,8 +992,93 @@
             }, 5000);
         }
 
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        function showLoading(show, message = '이미지를 처리하고 있습니다...') {
+            const loadingElement = document.getElementById('loading');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            loadingElement.style.display = show ? 'block' : 'none';
+            if (show) {
+                loadingMessage.textContent = message;
+            }
+        }
+
+        function detectCorners(method) {
+            if (!currentFilename) {
+                showMessage('업로드된 이미지가 없습니다.', 'error');
+                return;
+            }
+
+            showLoading(true);
+            
+            // 검출 중임을 나타내는 메시지 표시
+            const methodName = method === 'basic' ? '기본 검출' : '고급 검출';
+            showMessage(`${methodName}을 실행하고 있습니다...`, 'success');
+
+            fetch('/detect-corners', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    filename: currentFilename,
+                    method: method
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+                if (data.success) {
+                    // 검출된 코너점을 화면에 적용
+                    applyDetectedCorners(data.corners);
+                    showMessage(data.message, 'success');
+                } else {
+                    showMessage(data.error, 'error');
+                    // 검출 실패 시 기본 사각형으로 초기화
+                    if (method === 'basic') {
+                        resetCorners();
+                        showMessage('기본 사각형으로 초기화되었습니다. 수동으로 조정해주세요.', 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                showMessage('코너점 검출 중 오류가 발생했습니다.', 'error');
+                console.error('Error:', error);
+                // 오류 발생 시 기본 사각형으로 초기화
+                if (method === 'basic') {
+                    resetCorners();
+                }
+            });
+        }
+
+        function applyDetectedCorners(corners) {
+            if (!currentImage || !corners || corners.length < 3) {
+                showMessage('검출된 코너점이 유효하지 않습니다. 최소 3개 이상의 점이 필요합니다.', 'error');
+                return;
+            }
+
+            const imageRect = currentImage.getBoundingClientRect();
+            
+            // 검출된 코너점을 화면 좌표로 변환
+            const positions = corners.map(corner => {
+                const x = corner[0] * imageRect.width;
+                const y = corner[1] * imageRect.height;
+                
+                // 이미지 영역 내로 제한
+                const clampedX = Math.max(0, Math.min(x, imageRect.width - 20));
+                const clampedY = Math.max(0, Math.min(y, imageRect.height - 20));
+                
+                return { x: clampedX, y: clampedY };
+            });
+
+            // 기존 코너점들 제거
+            clearCornerPoints();
+            
+            // 새로운 코너점들 생성
+            createCornerPoints(positions);
+
+            // 오버레이 다시 그리기
+            setTimeout(drawCropOverlay, 50);
         }
     </script>
 </body>

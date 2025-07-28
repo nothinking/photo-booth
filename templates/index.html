@@ -81,38 +81,11 @@
             transform: translateY(-2px);
         }
 
-        .camera-btn {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            margin-left: 15px;
-        }
-
-        .camera-btn:hover {
-            background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
-        }
-
         .image-container {
             position: relative;
             margin: 20px 0;
             display: inline-block;
             max-width: 100%;
-            padding: 50px; /* 이미지 주변에 여백 추가 */
-            background: #f8f9fa;
-            border-radius: 15px;
-            border: 2px dashed #dee2e6;
-        }
-
-        .image-container::before {
-            content: "📐 코너점을 자유롭게 이동할 수 있습니다";
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 123, 255, 0.9);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            z-index: 5;
         }
 
         .image-container img {
@@ -131,21 +104,6 @@
             border-radius: 50%;
             cursor: move;
             z-index: 10;
-            touch-action: none; /* 터치 스크롤 방지 */
-            user-select: none; /* 텍스트 선택 방지 */
-        }
-
-        /* 모바일에서 더 큰 터치 영역 */
-        @media (max-width: 768px) {
-            .corner-point {
-                width: 30px;
-                height: 30px;
-                border-width: 4px;
-            }
-            
-            .corner-number {
-                font-size: 14px;
-            }
         }
 
         .corner-point:hover {
@@ -328,33 +286,6 @@
             color: #666;
         }
 
-        .camera-modal {
-            max-width: 600px;
-        }
-
-        .camera-container {
-            margin: 20px 0;
-            text-align: center;
-        }
-
-        #cameraVideo {
-            width: 100%;
-            max-width: 500px;
-            border-radius: 10px;
-            border: 3px solid #28a745;
-        }
-
-        .camera-controls {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .camera-controls .btn {
-            margin: 0 10px;
-        }
-
-
-
         .message {
             padding: 15px;
             margin: 20px 0;
@@ -372,12 +303,6 @@
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
-        }
-
-        .message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
         }
 
         .loading {
@@ -447,13 +372,8 @@
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                     📁 갤러리에서 사진 선택하기
                 </button>
-                <button class="upload-btn camera-btn" id="cameraBtn" onclick="openCamera()">
-                    📷 카메라로 찍기
-                </button>
                 <p style="margin-top: 15px; color: #666;">또는 이미지를 여기에 드래그하세요</p>
             </div>
-
-
 
             <div id="messageContainer"></div>
 
@@ -502,24 +422,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 카메라 모달 -->
-            <div id="cameraModal" class="modal">
-                <div class="modal-content camera-modal">
-                    <span class="close-modal" onclick="closeCamera()">&times;</span>
-                    <h3>📷 카메라로 사진 찍기</h3>
-                    <div class="camera-container">
-                        <video id="cameraVideo" autoplay playsinline></video>
-                        <canvas id="cameraCanvas" style="display: none;"></canvas>
-                        <img id="capturedImage" style="display: none; max-width: 100%; border-radius: 10px;">
-                    </div>
-                    <div class="camera-controls">
-                        <button class="btn" id="captureBtn" onclick="capturePhoto()">📸 사진 찍기</button>
-                        <button class="btn" id="retakeBtn" onclick="retakePhoto()" style="display: none;">🔄 다시 찍기</button>
-                        <button class="btn" id="usePhotoBtn" onclick="useCapturedPhoto()" style="display: none;">✅ 사용하기</button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -530,41 +432,6 @@
         let draggedCorner = null;
         let startX, startY;
         let cropHistory = [];
-        let cameraStream = null;
-        let capturedImageData = null;
-        let cornerRatios = null; // 코너점들의 비율 좌표 저장 (0-1 범위)
-        let imageContainerRect = null; // 이미지 컨테이너의 기준 크기 저장
-
-        // 페이지 로드 시 카메라 권한 확인
-        window.addEventListener('load', async function() {
-            const permission = await checkCameraPermission();
-            const cameraBtn = document.getElementById('cameraBtn');
-            
-            if (permission === 'denied') {
-                cameraBtn.style.opacity = '0.6';
-                cameraBtn.title = '카메라 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.';
-            } else if (permission === 'granted') {
-                cameraBtn.title = '카메라 사용 가능';
-            }
-        });
-
-        // 화면 방향 변경 감지
-        window.addEventListener('orientationchange', function() {
-            setTimeout(function() {
-                if (document.getElementById('imageContainer').style.display !== 'none') {
-                    updateCornerPositions();
-                }
-            }, 300); // 방향 변경 완료 후 300ms 대기
-        });
-
-        // 화면 크기 변경 감지
-        window.addEventListener('resize', function() {
-            setTimeout(function() {
-                if (document.getElementById('imageContainer').style.display !== 'none') {
-                    updateCornerPositions();
-                }
-            }, 100);
-        });
 
         // 파일 업로드 처리
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
@@ -641,11 +508,6 @@
             
             img.onload = function() {
                 currentImage = img;
-                
-                // 새로운 이미지 로드 시 비율 초기화
-                cornerRatios = null;
-                
-                // 모든 디바이스에서 동일한 방식 사용
                 document.getElementById('imageContainer').style.display = 'block';
                 document.getElementById('controls').style.display = 'block';
                 document.getElementById('resultSection').style.display = 'none';
@@ -662,132 +524,46 @@
             };
         }
 
-
-
-
-
         function resetCorners() {
             if (!currentImage) return;
             
-            // 이미지가 로드될 때까지 대기
-            if (!currentImage.complete || currentImage.naturalWidth === 0) {
-                setTimeout(resetCorners, 100);
-                return;
-            }
+            const imageRect = currentImage.getBoundingClientRect();
+            const margin = 50; // 이미지 경계에서 50px 여백
             
-            const container = document.getElementById('imageContainer');
-            const containerRect = container.getBoundingClientRect();
-            const imgRect = currentImage.getBoundingClientRect();
-            
-            // 이미지가 아직 렌더링되지 않은 경우 대기
-            if (imgRect.width === 0 || imgRect.height === 0) {
-                setTimeout(resetCorners, 100);
-                return;
-            }
-            
-            const padding = 50; // 컨테이너 패딩
-            const margin = 80; // 이미지 경계에서 80px 여백 (더 넓은 영역)
-            
-            // 안전한 초기 위치 계산 (컨테이너 기준)
-            const cornerSize = window.innerWidth <= 768 ? 30 : 20;
+            // 안전한 초기 위치 계산
             const corners = [
-                { id: 'corner1', x: padding + margin, y: padding + margin },
-                { id: 'corner2', x: containerRect.width - padding - margin - cornerSize, y: padding + margin },
-                { id: 'corner3', x: containerRect.width - padding - margin - cornerSize, y: containerRect.height - padding - margin - cornerSize },
-                { id: 'corner4', x: padding + margin, y: containerRect.height - padding - margin - cornerSize }
+                { id: 'corner1', x: margin, y: margin },
+                { id: 'corner2', x: imageRect.width - margin - 20, y: margin },
+                { id: 'corner3', x: imageRect.width - margin - 20, y: imageRect.height - margin - 20 },
+                { id: 'corner4', x: margin, y: imageRect.height - margin - 20 }
             ];
 
             corners.forEach(corner => {
                 const element = document.getElementById(corner.id);
-                if (element) {
-                    element.style.left = corner.x + 'px';
-                    element.style.top = corner.y + 'px';
-                    element.style.right = 'auto';
-                    element.style.bottom = 'auto';
-                }
+                element.style.left = corner.x + 'px';
+                element.style.top = corner.y + 'px';
+                element.style.right = 'auto';
+                element.style.bottom = 'auto';
             });
-            
-            // 초기 비율 좌표 저장
-            saveCornerRatios();
             
             // 오버레이 다시 그리기
-            setTimeout(drawCropOverlay, 100);
+            setTimeout(drawCropOverlay, 50);
         }
 
-        function saveCornerRatios() {
-            if (!currentImage) return;
-            const container = document.getElementById('imageContainer');
-            const containerRect = container.getBoundingClientRect();
-            const imgRect = currentImage.getBoundingClientRect();
-            cornerRatios = [];
-            ['corner1', 'corner2', 'corner3', 'corner4'].forEach(cornerId => {
-                const corner = document.getElementById(cornerId);
-                if (corner) {
-                    const cornerRect = corner.getBoundingClientRect();
-                    // 컨테이너 기준 이미지 내 상대 좌표
-                    const x = (cornerRect.left + cornerRect.width / 2 - imgRect.left) / imgRect.width;
-                    const y = (cornerRect.top + cornerRect.height / 2 - imgRect.top) / imgRect.height;
-                    cornerRatios.push([x, y]);
-                }
-            });
-        }
-
-        function updateCornerPositions() {
-            if (!currentImage || !cornerRatios) return;
-            const container = document.getElementById('imageContainer');
-            const containerRect = container.getBoundingClientRect();
-            const imgRect = currentImage.getBoundingClientRect();
-            const cornerSize = window.innerWidth <= 768 ? 30 : 20;
-            cornerRatios.forEach((ratio, index) => {
-                const cornerId = `corner${index + 1}`;
-                const element = document.getElementById(cornerId);
-                if (element) {
-                    // 이미지 내 상대 좌표 → 절대 좌표 (컨테이너 기준)
-                    const x = imgRect.left - containerRect.left + ratio[0] * imgRect.width;
-                    const y = imgRect.top - containerRect.top + ratio[1] * imgRect.height;
-                    element.style.left = `${x}px`;
-                    element.style.top = `${y}px`;
-                    element.style.right = 'auto';
-                    element.style.bottom = 'auto';
-                }
-            });
-            setTimeout(drawCropOverlay, 100);
-        }
-
-        // 코너점 드래그 기능 (마우스 + 터치 지원)
+        // 코너점 드래그 기능
         document.querySelectorAll('.corner-point').forEach(corner => {
-            // 마우스 이벤트
             corner.addEventListener('mousedown', startDrag);
-            
-            // 터치 이벤트
-            corner.addEventListener('touchstart', startDrag, { passive: false });
         });
 
-        // 마우스 이벤트
         document.addEventListener('mousemove', drag);
         document.addEventListener('mouseup', stopDrag);
-        
-        // 터치 이벤트
-        document.addEventListener('touchmove', drag, { passive: false });
-        document.addEventListener('touchend', stopDrag);
 
         function startDrag(e) {
             isDragging = true;
             draggedCorner = e.target;
-            
-            // 터치 이벤트와 마우스 이벤트 구분
-            let clientX, clientY;
-            if (e.type === 'touchstart') {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
-            
             const rect = draggedCorner.getBoundingClientRect();
-            startX = clientX - rect.left;
-            startY = clientY - rect.top;
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
             e.preventDefault();
         }
 
@@ -798,31 +574,13 @@
             const containerRect = container.getBoundingClientRect();
             const imageRect = currentImage.getBoundingClientRect();
 
-            // 터치 이벤트와 마우스 이벤트 구분
-            let clientX, clientY;
-            if (e.type === 'touchmove') {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
+            let x = e.clientX - containerRect.left - startX;
+            let y = e.clientY - containerRect.top - startY;
 
-            let x = clientX - containerRect.left - startX;
-            let y = clientY - containerRect.top - startY;
-
-            // 터치 이벤트에서 스크롤 방지
-            if (e.type === 'touchmove') {
-                e.preventDefault();
-            }
-
-            // 컨테이너 영역 내로 제한 (이미지 영역보다 넓음)
-            const cornerSize = window.innerWidth <= 768 ? 30 : 20;
-            const padding = 50; // 컨테이너 패딩
-            
-            // 컨테이너 내부 영역으로 제한
-            x = Math.max(padding, Math.min(x, containerRect.width - padding - cornerSize));
-            y = Math.max(padding, Math.min(y, containerRect.height - padding - cornerSize));
+            // 이미지 영역 내로 엄격하게 제한 (코너점 크기 고려)
+            const cornerSize = 20;
+            x = Math.max(0, Math.min(x, imageRect.width - cornerSize));
+            y = Math.max(0, Math.min(y, imageRect.height - cornerSize));
 
             // 임시로 위치 업데이트하여 유효성 검사
             const originalLeft = draggedCorner.style.left;
@@ -856,23 +614,21 @@
         function validateCornerPositions() {
             if (!currentImage) return false;
             
-            const container = document.getElementById('imageContainer');
-            const containerRect = container.getBoundingClientRect();
+            const imageRect = currentImage.getBoundingClientRect();
             const corners = ['corner1', 'corner2', 'corner3', 'corner4'];
-            const cornerSize = window.innerWidth <= 768 ? 30 : 20;
-            const padding = 50; // 컨테이너 패딩
+            const cornerSize = 20;
             
-            // 모든 코너점이 컨테이너 영역 내에 있는지 확인
+            // 모든 코너점이 이미지 영역 내에 있는지 확인
             for (const cornerId of corners) {
                 const corner = document.getElementById(cornerId);
                 const cornerRect = corner.getBoundingClientRect();
                 
-                const x = cornerRect.left + cornerRect.width / 2 - containerRect.left;
-                const y = cornerRect.top + cornerRect.height / 2 - containerRect.top;
+                const x = cornerRect.left + cornerRect.width / 2 - imageRect.left;
+                const y = cornerRect.top + cornerRect.height / 2 - imageRect.top;
                 
-                // 컨테이너 영역을 벗어나면 false 반환
-                if (x < padding || x > containerRect.width - padding - cornerSize || 
-                    y < padding || y > containerRect.height - padding - cornerSize) {
+                // 이미지 영역을 벗어나면 false 반환
+                if (x < 0 || x > imageRect.width - cornerSize || 
+                    y < 0 || y > imageRect.height - cornerSize) {
                     return false;
                 }
             }
@@ -899,16 +655,15 @@
         }
 
         function getCornerPositions() {
-            const container = document.getElementById('imageContainer');
-            const containerRect = container.getBoundingClientRect();
+            const imageRect = currentImage.getBoundingClientRect();
             const positions = [];
             
             ['corner1', 'corner2', 'corner3', 'corner4'].forEach(cornerId => {
                 const corner = document.getElementById(cornerId);
                 const cornerRect = corner.getBoundingClientRect();
                 
-                const x = cornerRect.left + cornerRect.width / 2 - containerRect.left;
-                const y = cornerRect.top + cornerRect.height / 2 - containerRect.top;
+                const x = cornerRect.left + cornerRect.width / 2 - imageRect.left;
+                const y = cornerRect.top + cornerRect.height / 2 - imageRect.top;
                 
                 positions.push([x, y]);
             });
@@ -919,7 +674,6 @@
         function stopDrag() {
             isDragging = false;
             draggedCorner = null;
-            saveCornerRatios();
             drawCropOverlay();
         }
 
@@ -986,7 +740,6 @@
                 const corner = document.getElementById(cornerId);
                 const cornerRect = corner.getBoundingClientRect();
                 
-                // 이미지 기준으로 정규화된 좌표 계산
                 const x = (cornerRect.left + cornerRect.width / 2 - imageRect.left) / imageRect.width;
                 const y = (cornerRect.top + cornerRect.height / 2 - imageRect.top) / imageRect.height;
                 
@@ -1174,212 +927,9 @@
         // 모달 외부 클릭 시 닫기
         window.onclick = function(event) {
             const modal = document.getElementById('imageModal');
-            const cameraModal = document.getElementById('cameraModal');
             if (event.target === modal) {
                 closeModal();
             }
-            if (event.target === cameraModal) {
-                closeCamera();
-            }
-        }
-
-        // 카메라 관련 함수들
-        async function checkCameraPermission() {
-            try {
-                if (!navigator.permissions) {
-                    return 'unknown';
-                }
-                
-                const permission = await navigator.permissions.query({ name: 'camera' });
-                return permission.state;
-            } catch (error) {
-                return 'unknown';
-            }
-        }
-
-        async function openCamera() {
-            const modal = document.getElementById('cameraModal');
-            const video = document.getElementById('cameraVideo');
-            const captureBtn = document.getElementById('captureBtn');
-            const retakeBtn = document.getElementById('retakeBtn');
-            const usePhotoBtn = document.getElementById('usePhotoBtn');
-            const capturedImage = document.getElementById('capturedImage');
-
-            try {
-                // 먼저 mediaDevices API가 지원되는지 확인
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('이 브라우저는 카메라를 지원하지 않습니다.');
-                }
-
-                // 카메라 스트림 가져오기 (더 유연한 설정)
-                const constraints = {
-                    video: {
-                        width: { ideal: 1280, min: 640 },
-                        height: { ideal: 720, min: 480 },
-                        facingMode: { ideal: 'environment', fallback: 'user' }
-                    }
-                };
-
-                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-                video.srcObject = cameraStream;
-                modal.style.display = 'block';
-
-                // 비디오 로드 완료 대기
-                video.onloadedmetadata = function() {
-                    // 버튼 상태 초기화
-                    captureBtn.style.display = 'inline-block';
-                    retakeBtn.style.display = 'none';
-                    usePhotoBtn.style.display = 'none';
-                    capturedImage.style.display = 'none';
-                    video.style.display = 'block';
-
-                    showMessage('카메라가 활성화되었습니다. 사진을 찍어주세요.', 'success');
-                };
-
-            } catch (error) {
-                console.error('카메라 접근 오류:', error);
-                
-                let errorMessage = '카메라에 접근할 수 없습니다.';
-                
-                if (error.name === 'NotAllowedError') {
-                    errorMessage = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.';
-                } else if (error.name === 'NotFoundError') {
-                    errorMessage = '카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.';
-                } else if (error.name === 'NotSupportedError') {
-                    errorMessage = '이 브라우저는 카메라를 지원하지 않습니다. Chrome, Firefox, Safari를 사용해주세요.';
-                } else if (error.name === 'NotReadableError') {
-                    errorMessage = '카메라가 다른 애플리케이션에서 사용 중입니다. 다른 앱을 닫고 다시 시도해주세요.';
-                } else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                    errorMessage = '보안상 HTTPS 환경에서만 카메라를 사용할 수 있습니다.';
-                }
-                
-                showMessage(errorMessage, 'error');
-                
-                // 더 간단한 설정으로 재시도
-                if (error.name === 'NotAllowedError' || error.name === 'NotSupportedError') {
-                    setTimeout(async () => {
-                        showMessage('간단한 설정으로 카메라를 다시 시도합니다...', 'info');
-                        try {
-                            const simpleStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                            cameraStream = simpleStream;
-                            
-                            const video = document.getElementById('cameraVideo');
-                            video.srcObject = cameraStream;
-                            
-                            const modal = document.getElementById('cameraModal');
-                            modal.style.display = 'block';
-                            
-                            showMessage('카메라가 활성화되었습니다!', 'success');
-                        } catch (retryError) {
-                            showMessage('카메라 접근이 불가능합니다. 갤러리에서 사진을 선택해주세요.', 'error');
-                        }
-                    }, 2000);
-                } else {
-                    // 대안으로 파일 업로드 안내
-                    setTimeout(() => {
-                        showMessage('대신 "갤러리에서 사진 선택하기" 버튼을 사용해주세요.', 'info');
-                    }, 3000);
-                }
-            }
-        }
-
-        function capturePhoto() {
-            const video = document.getElementById('cameraVideo');
-            const canvas = document.getElementById('cameraCanvas');
-            const capturedImage = document.getElementById('capturedImage');
-            const captureBtn = document.getElementById('captureBtn');
-            const retakeBtn = document.getElementById('retakeBtn');
-            const usePhotoBtn = document.getElementById('usePhotoBtn');
-
-            // 캔버스 크기를 비디오 크기에 맞춤
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            // 비디오 프레임을 캔버스에 그리기
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-
-            // 캡처된 이미지를 표시
-            capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
-            capturedImage.src = capturedImageData;
-
-            // UI 상태 변경
-            video.style.display = 'none';
-            capturedImage.style.display = 'block';
-            captureBtn.style.display = 'none';
-            retakeBtn.style.display = 'inline-block';
-            usePhotoBtn.style.display = 'inline-block';
-
-            showMessage('사진이 찍혔습니다!', 'success');
-        }
-
-        function retakePhoto() {
-            const video = document.getElementById('cameraVideo');
-            const capturedImage = document.getElementById('capturedImage');
-            const captureBtn = document.getElementById('captureBtn');
-            const retakeBtn = document.getElementById('retakeBtn');
-            const usePhotoBtn = document.getElementById('usePhotoBtn');
-
-            // UI 상태 초기화
-            video.style.display = 'block';
-            capturedImage.style.display = 'none';
-            captureBtn.style.display = 'inline-block';
-            retakeBtn.style.display = 'none';
-            usePhotoBtn.style.display = 'none';
-
-            capturedImageData = null;
-        }
-
-        function useCapturedPhoto() {
-            if (!capturedImageData) {
-                showMessage('캡처된 이미지가 없습니다.', 'error');
-                return;
-            }
-
-            // Base64 데이터를 Blob으로 변환
-            fetch(capturedImageData)
-                .then(res => res.blob())
-                .then(blob => {
-                    // 파일 객체 생성
-                    const file = new File([blob], `camera_${Date.now()}.jpg`, {
-                        type: 'image/jpeg'
-                    });
-
-                    // 기존 파일 업로드 로직 사용
-                    handleFile(file);
-                    closeCamera();
-                })
-                .catch(error => {
-                    console.error('이미지 처리 오류:', error);
-                    showMessage('이미지 처리 중 오류가 발생했습니다.', 'error');
-                });
-        }
-
-        function closeCamera() {
-            const modal = document.getElementById('cameraModal');
-            modal.style.display = 'none';
-
-            // 카메라 스트림 정리
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                cameraStream = null;
-            }
-
-            // UI 상태 초기화
-            const video = document.getElementById('cameraVideo');
-            const capturedImage = document.getElementById('capturedImage');
-            const captureBtn = document.getElementById('captureBtn');
-            const retakeBtn = document.getElementById('retakeBtn');
-            const usePhotoBtn = document.getElementById('usePhotoBtn');
-
-            video.style.display = 'block';
-            capturedImage.style.display = 'none';
-            captureBtn.style.display = 'inline-block';
-            retakeBtn.style.display = 'none';
-            usePhotoBtn.style.display = 'none';
-
-            capturedImageData = null;
         }
 
         function showMessage(message, type) {

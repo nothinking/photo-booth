@@ -110,31 +110,76 @@
             z-index: 10;
             /* 모바일 터치 영역 확장 */
             touch-action: none; /* 기본 터치 동작 방지 */
+            /* 드래그 핸들을 엣지에서 분리하기 위한 오프셋 */
+            transform: translate(-50%, -50%);
         }
         
         /* 모바일에서 터치 영역을 더 크게 만들기 위한 가상 요소 */
         .corner-point::before {
             content: '';
             position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
+            top: -15px;
+            left: -15px;
+            right: -15px;
+            bottom: -15px;
             z-index: -1;
+            background: rgba(255, 71, 87, 0.1);
+            border-radius: 50%;
+            border: 2px dashed rgba(255, 71, 87, 0.3);
         }
-
+        
+        /* 드래그 핸들 외부에 추가 터치 영역 */
+        .corner-point::after {
+            content: '';
+            position: absolute;
+            top: -25px;
+            left: -25px;
+            right: -25px;
+            bottom: -25px;
+            z-index: -2;
+        }
+        
+        /* 드래그 핸들에 호버 효과 추가 */
+        .corner-point:hover::before {
+            background: rgba(255, 71, 87, 0.2);
+            border-color: rgba(255, 71, 87, 0.5);
+            transform: scale(1.1);
+        }
+        
+        /* 터치 중일 때 외부 영역도 강조 */
+        .corner-point.touching::before {
+            background: rgba(255, 71, 87, 0.3);
+            border-color: rgba(255, 71, 87, 0.7);
+            border-width: 3px;
+            transform: scale(1.2);
+        }
+        
+        .corner-point.touching::after {
+            background: rgba(255, 71, 87, 0.1);
+            border: 2px solid rgba(255, 71, 87, 0.4);
+            border-radius: 50%;
+        }
+        
         .corner-point:hover {
             background: #ff3742;
-            transform: scale(1.2);
+            transform: translate(-50%, -50%) scale(1.2);
         }
         
         /* 모바일에서 터치 시 시각적 피드백 */
         .corner-point:active {
             background: #ff3742;
-            transform: scale(1.1);
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
         }
-
-
+        
+        /* 터치 중일 때 추가 시각적 피드백 */
+        .corner-point.touching {
+            background: #ff3742;
+            transform: translate(-50%, -50%) scale(1.4);
+            box-shadow: 0 0 25px rgba(255, 71, 87, 0.8);
+            border-color: #fff;
+            border-width: 4px;
+        }
 
         .corner-number {
             position: absolute;
@@ -491,13 +536,27 @@
             }
             
             .corner-point {
-                width: 24px;
-                height: 24px;
-                border-width: 2px;
+                width: 28px;
+                height: 28px;
+                border-width: 3px;
+            }
+            
+            .corner-point::before {
+                top: -20px;
+                left: -20px;
+                right: -20px;
+                bottom: -20px;
+            }
+            
+            .corner-point::after {
+                top: -35px;
+                left: -35px;
+                right: -35px;
+                bottom: -35px;
             }
             
             .corner-number {
-                font-size: 14px;
+                font-size: 16px;
             }
             
             .btn {
@@ -746,6 +805,7 @@
                 const cornerPoint = document.createElement('div');
                 cornerPoint.className = 'corner-point';
                 cornerPoint.id = `corner${index + 1}`;
+                // transform: translate(-50%, -50%)를 고려하여 위치 설정
                 cornerPoint.style.left = pos.x + 'px';
                 cornerPoint.style.top = pos.y + 'px';
                 cornerPoint.style.right = 'auto';
@@ -785,7 +845,7 @@
             e.preventDefault();
             
             // 드래그 시작 시 시각적 피드백
-            draggedCorner.style.transform = 'scale(1.1)';
+            draggedCorner.classList.add('touching');
         }
         
         // 터치 시작 이벤트 처리 (모바일)
@@ -800,7 +860,7 @@
             startY = touch.clientY - rect.top;
             
             // 터치 시작 시 시각적 피드백
-            draggedCorner.style.transform = 'scale(1.1)';
+            draggedCorner.classList.add('touching');
         }
 
         function drag(e) {
@@ -837,6 +897,7 @@
             cornerPoints.forEach(corner => {
                 const cornerRect = corner.getBoundingClientRect();
                 
+                // transform: translate(-50%, -50%)를 고려하여 중심점 계산
                 const x = cornerRect.left + cornerRect.width / 2 - imageRect.left;
                 const y = cornerRect.top + cornerRect.height / 2 - imageRect.top;
                 
@@ -849,7 +910,7 @@
         function stopDrag() {
             // 드래그 종료 시 시각적 피드백 제거
             if (draggedCorner) {
-                draggedCorner.style.transform = '';
+                draggedCorner.classList.remove('touching');
             }
             
             isDragging = false;
@@ -893,7 +954,7 @@
             
             // 터치 종료 시 시각적 피드백 제거
             if (draggedCorner) {
-                draggedCorner.style.transform = '';
+                draggedCorner.classList.remove('touching');
             }
             
             isDragging = false;
@@ -916,6 +977,7 @@
                 const cornerRect = corner.getBoundingClientRect();
                 
                 // 이미지 기준으로 상대적 위치 계산 (0-1 범위)
+                // transform: translate(-50%, -50%)를 고려하여 중심점 계산
                 const x = (cornerRect.left + cornerRect.width / 2 - imageRect.left) / imageRect.width;
                 const y = (cornerRect.top + cornerRect.height / 2 - imageRect.top) / imageRect.height;
                 
@@ -937,9 +999,9 @@
                     const x = pos.x * imageRect.width;
                     const y = pos.y * imageRect.height;
                     
-                                    // 자유로운 위치 설정 (제약 조건 제거)
-                const clampedX = x;
-                const clampedY = y;
+                    // 자유로운 위치 설정 (제약 조건 제거)
+                    const clampedX = x;
+                    const clampedY = y;
                     
                     corner.style.left = clampedX + 'px';
                     corner.style.top = clampedY + 'px';

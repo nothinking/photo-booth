@@ -15,15 +15,17 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            margin: 0;
+            padding: 0;
         }
 
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: none;
+            margin: 0;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 0;
+            box-shadow: none;
             overflow: hidden;
         }
 
@@ -472,8 +474,8 @@
         /* 모바일 반응형 스타일 */
         @media (max-width: 768px) {
             .container {
-                margin: 10px;
-                border-radius: 10px;
+                margin: 0;
+                border-radius: 0;
             }
             
             .header {
@@ -521,27 +523,7 @@
             }
         }
 
-        .instructions {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            border-left: 4px solid #667eea;
-        }
 
-        .instructions h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-
-        .instructions ol {
-            padding-left: 20px;
-        }
-
-        .instructions li {
-            margin-bottom: 8px;
-            line-height: 1.6;
-        }
     </style>
 </head>
 <body>
@@ -552,17 +534,7 @@
         </div>
 
         <div class="content">
-            <div class="instructions">
-                <h3>📋 사용 방법</h3>
-                <ol>
-                    <li>아래 버튼을 클릭하거나 이미지를 드래그하여 갤러리에서 사진을 업로드하세요.</li>
-                    <li><strong>자동 검출:</strong> 이미지 업로드 후 자동으로 엣지 디텍팅이 실행되어 코너점을 검출합니다.</li>
-                    <li><strong>유연한 코너점:</strong> 3개 이상의 코너점을 자동으로 검출하여 다양한 형태의 영역을 크롭할 수 있습니다.</li>
-                    <li><strong>수동 조정:</strong> 검출된 코너점을 드래그하여 정확한 위치로 미세 조정할 수 있습니다.</li>
-                    <li><strong>초기화:</strong> "모서리 초기화" 버튼으로 기본 위치로 되돌릴 수 있습니다.</li>
-                    <li>"크롭하기" 버튼을 클릭하여 최종 결과를 확인하세요.</li>
-                </ol>
-            </div>
+
 
             <div class="upload-section" id="uploadSection">
                 <input type="file" id="fileInput" class="file-input" accept="image/*">
@@ -636,6 +608,8 @@
         
         // 브라우저 크기 변경 이벤트 리스너
         window.addEventListener('resize', handleResize);
+
+
 
         function handleDragOver(e) {
             e.preventDefault();

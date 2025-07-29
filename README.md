@@ -1,140 +1,68 @@
-# 📸 포토부스 사진 크롭 도구
+# 포토부스 사진 크롭 도구
 
-Python, OpenCV, Flask를 활용한 웹 애플리케이션으로, 갤러리에서 사진을 업로드하여 포토부스 사진을 perspective crop할 수 있는 도구입니다.
+포토부스 사진에서 자동으로 엣지를 검출하고 크롭할 수 있는 웹 애플리케이션입니다.
 
-## 🚀 주요 기능
+## 주요 기능
 
-- **갤러리 사진 업로드**: 드래그 앤 드롭 또는 파일 선택으로 이미지 업로드
-- **Interactive Corner Selection**: 4개의 모서리 점을 드래그하여 포토부스 영역 선택
-- **Perspective Crop**: OpenCV를 사용한 정확한 perspective transform
-- **실시간 미리보기**: 크롭 결과를 즉시 확인
-- **이미지 다운로드**: 처리된 이미지를 로컬에 저장
+- 📸 이미지 업로드 (드래그 앤 드롭 지원)
+- 🔍 자동 엣지 디텍팅으로 코너점 검출
+- 🎯 유연한 코너점 조정 (3개 이상 지원)
+- ✂️ 실시간 크롭 미리보기
+- 💾 크롭 결과 다운로드
+- 📱 모바일 반응형 디자인
 
-## 📋 요구사항
+## 최근 업데이트
 
-- Python 3.7+
-- OpenCV
-- Flask
-- NumPy
-- Pillow
+### 2024년 업데이트
+1. **전체 화면 레이아웃**: 외곽 여백을 제거하고 전체 화면 가로 사이즈를 활용
+2. **간소화된 인터페이스**: 사용방법 박스를 제거하여 더 깔끔한 UI 제공
+3. **향상된 사용자 경험**: 더 넓은 작업 공간과 직관적인 인터페이스
 
-## 🛠️ 설치 및 실행
+## 실행 방법
 
-### 1. 의존성 설치
-
+1. 의존성 설치:
 ```bash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
-### 2. 애플리케이션 실행
-
+2. 애플리케이션 실행:
 ```bash
-python app.py
+python3 app.py
 ```
 
-### 3. 웹 브라우저에서 접속
-
+3. 브라우저에서 접속:
 ```
-http://localhost:5001
+http://localhost:5002
 ```
 
-## 📖 사용 방법
+## 사용 방법
 
-1. **이미지 업로드**
-   - "갤러리에서 사진 선택하기" 버튼 클릭
-   - 또는 이미지를 드래그하여 업로드 영역에 드롭
+1. **이미지 업로드**: 버튼을 클릭하거나 이미지를 드래그하여 업로드
+2. **자동 검출**: 업로드 후 자동으로 엣지 디텍팅이 실행되어 코너점 검출
+3. **수동 조정**: 검출된 코너점을 드래그하여 정확한 위치로 조정
+4. **크롭 실행**: "크롭하기" 버튼을 클릭하여 최종 결과 확인
+5. **결과 다운로드**: 크롭된 이미지를 다운로드하거나 미리보기
 
-2. **포토부스 영역 선택**
-   - 업로드된 이미지에서 4개의 빨간 점이 나타남
-   - 각 점을 드래그하여 포토부스의 모서리와 정확히 일치시킴
+## 기술 스택
 
-3. **크롭 실행**
-   - "크롭하기" 버튼 클릭
-   - 처리된 이미지가 하단에 표시됨
+- **Backend**: Flask (Python)
+- **Image Processing**: OpenCV, PIL
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Responsive Design**: CSS Grid/Flexbox
 
-4. **결과 다운로드**
-   - "이미지 다운로드" 버튼으로 최종 결과 저장
-
-## 🏗️ 프로젝트 구조
+## 파일 구조
 
 ```
 python/
-├── app.py                 # Flask 메인 애플리케이션
-├── requirements.txt       # Python 의존성
+├── app.py              # Flask 애플리케이션 메인 파일
+├── requirements.txt    # Python 의존성 목록
 ├── templates/
-│   └── index.html        # 웹 인터페이스
-├── uploads/              # 업로드된 이미지 저장소
-├── processed/            # 처리된 이미지 저장소
-└── README.md            # 프로젝트 문서
+│   └── index.html     # 메인 HTML 템플릿
+├── uploads/           # 업로드된 이미지 저장 폴더
+├── processed/         # 크롭된 이미지 저장 폴더
+└── README.md         # 프로젝트 문서
 ```
 
-## 🔧 기술 스택
+## 라이선스
 
-- **Backend**: Python, Flask
-- **Image Processing**: OpenCV, NumPy
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **File Handling**: Pillow, Werkzeug
-
-## 🎯 주요 알고리즘
-
-### Perspective Transform
-```python
-def perspective_crop(image_path, corners):
-    # 1. 이미지 로드
-    image = cv2.imread(image_path)
-    
-    # 2. 소스 포인트를 numpy 배열로 변환
-    src_points = np.array(corners, dtype=np.float32)
-    
-    # 3. 목표 크기 계산
-    width = max(
-        np.linalg.norm(src_points[1] - src_points[0]),
-        np.linalg.norm(src_points[2] - src_points[3])
-    )
-    height = max(
-        np.linalg.norm(src_points[3] - src_points[0]),
-        np.linalg.norm(src_points[2] - src_points[1])
-    )
-    
-    # 4. 목표 좌표 설정
-    dst_points = np.array([
-        [0, 0], [width, 0], [width, height], [0, height]
-    ], dtype=np.float32)
-    
-    # 5. Perspective transform matrix 계산 및 적용
-    matrix = cv2.getPerspectiveTransform(src_points, dst_points)
-    result = cv2.warpPerspective(image, matrix, (width, height))
-    
-    return result
-```
-
-## 🌟 특징
-
-- **반응형 디자인**: 모바일과 데스크톱에서 모두 사용 가능
-- **직관적인 UI**: 드래그 앤 드롭 인터페이스
-- **실시간 피드백**: 사용자 액션에 대한 즉시적인 응답
-- **에러 처리**: 다양한 예외 상황에 대한 적절한 처리
-- **보안**: 파일 업로드 보안 검증
-
-## 🔒 보안 고려사항
-
-- 파일 확장자 검증
-- 파일 크기 제한 (16MB)
-- 고유한 파일명 생성으로 충돌 방지
-- 업로드된 파일의 안전한 저장
-
-## 📝 라이선스
-
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
-
-## 🤝 기여하기
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📞 문의
-
-프로젝트에 대한 문의사항이 있으시면 이슈를 생성해 주세요. 
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 
